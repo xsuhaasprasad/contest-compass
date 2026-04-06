@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Topic {
+  Algebra
+  Geometry
+  NumberTheory
+  Combinatorics
+}
+
+enum MistakeType {
+  WrongSetup
+  CalculationError
+  MisreadProblem
+  ConceptGap
+  TimePressure
+}
+
+enum ProblemStatus {
+  Active
+  Mastered
+}
+
+enum ReviewResult {
+  Correct
+  Incorrect
+}
+
+enum Confidence {
+  Low
+  Medium
+  High
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  problems     Problem[]
+  reviews      Review[]
+}
+
+model Problem {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  topic          Topic
+  subtopic       String
+  mistakeType    MistakeType
+  notes          String?
+  solutionUrl    String?
+  difficulty     Int
+  status         ProblemStatus @default(Active)
+  nextReviewDate DateTime
+  intervalDays   Int           @default(1)
+  correctStreak  Int           @default(0)
+  masteredAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  reviews        Review[]
+
+  @@index([userId, status, nextReviewDate])
+  @@index([userId, topic])
+  @@index([userId, mistakeType])
+}
+
+model Review {
+  id                  String       @id @default(cuid())
+  userId              String
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId           String
+  problem             Problem      @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  reviewedAt          DateTime     @default(now())
+  result              ReviewResult
+  confidence          Confidence
+  intervalBefore      Int
+  intervalAfter       Int
+  streakBefore        Int
+  streakAfter         Int
+  nextReviewDateAfter DateTime
+
+  @@index([userId, reviewedAt])
+  @@index([problemId, reviewedAt])
+}
